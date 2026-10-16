@@ -1,6 +1,6 @@
 // Keeps a copy of the app's own files so it opens offline. It never sees or sends your entries,
 // which live in the browser's storage on this device.
-const CACHE = "billables-v1";
+const CACHE = "billables-v2";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", e => {

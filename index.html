@@ -30,6 +30,10 @@
   --accent:#5fbf9b; --accent-ink:#0c1a15; --accent-soft:#163128;
   --run:#f0a944; --run-soft:#3a2a12; --nb:#ab9ee6; --nb-soft:#27223f; --danger:#f2847b; --danger-soft:#3b1d1b;
   --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark}
+/* trend chart series: the type colors stepped for chart marks, validated for color-vision separation in each mode */
+:root{--c-b:#23845e; --c-n:#6b5cc4; --c-p:#c27a00; --grid:#e8ebef}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--c-b:#3a9e78; --c-n:#8577d6; --c-p:#bd821c; --grid:#242c35}}
+:root[data-theme="dark"]{--c-b:#3a9e78; --c-n:#8577d6; --c-p:#bd821c; --grid:#242c35}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
@@ -199,9 +203,59 @@ button.chip:hover{filter:brightness(.97)}
 .whatif .num{font-size:15px}
 .result-line{font-size:15px}
 .result-line b{font-family:var(--f-mono);font-weight:500}
+.brk{width:100%;border-collapse:collapse;font-size:14px}
 .brk td,.brk th{padding:7px 8px;border-top:1px solid var(--line);text-align:right;font-family:var(--f-mono)}
+.brk .sm{display:none}
+@media (max-width:560px){.brk .lg{display:none}.brk .sm{display:inline}}
 .brk th{font-family:var(--f-body);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600;border-top:0}
 .brk td:first-child,.brk th:first-child{text-align:left;font-family:var(--f-body)}
+
+/* trend chart */
+.trend-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.trend-head h3{margin-right:auto}
+.trend-head .seg{flex-wrap:nowrap}
+.trend-head .seg button{padding:5px 12px;font-size:13px}
+.trend-nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.trend-nav .lbl{font-weight:600;margin-right:auto;min-width:0}
+.trend-nav .row{display:flex;gap:4px;align-items:center;margin-left:auto}
+.icon-btn{display:grid;place-items:center;width:34px;height:32px;padding:0}
+.icon-btn:disabled{opacity:.35;cursor:default}
+.trend-sum{font-size:14px}
+.trend-sum b{font-family:var(--f-mono);font-weight:500}
+.trend-chart{position:relative}
+.trend-chart svg{display:block;width:100%;height:auto;touch-action:pan-y;-webkit-tap-highlight-color:transparent}
+.trend-chart svg:focus{outline:none}
+.trend-chart svg:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:4px}
+.tr-grid{stroke:var(--grid);stroke-width:1}
+.tr-base{stroke:var(--line);stroke-width:1}
+.tr-tick{font:11px var(--f-mono);fill:var(--muted)}
+.tr-x{font:11px var(--f-body);fill:var(--muted)}
+.tr-x.now{fill:var(--ink);font-weight:600}
+.tr-cap{font:11px var(--f-mono);fill:var(--ink);paint-order:stroke;stroke:var(--surface);stroke-width:3px;stroke-linejoin:round}
+.tr-b{fill:var(--c-b)} .tr-n{fill:var(--c-n)} .tr-p{fill:var(--c-p)}
+.tr-pace{fill:none;stroke:var(--ink);stroke-width:2}
+.tr-marks{pointer-events:none}
+.tr-hit{fill:transparent}
+.tr-hit.on{fill:color-mix(in srgb,var(--ink) 6%,transparent)}
+.tr-tip{position:absolute;z-index:2;pointer-events:none;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.14);padding:8px 10px;font-size:12.5px;width:max-content;min-width:136px;display:flex;flex-direction:column;gap:2px;white-space:nowrap}
+.tr-tip .d{color:var(--muted);font-size:12px}
+.tr-tip .big{font-family:var(--f-mono);font-size:16px;color:var(--ink)}
+.tr-tip .big small{font-family:var(--f-body);font-size:12px;color:var(--muted);margin-left:4px}
+.tr-tip .r{display:flex;align-items:center;gap:7px;color:var(--muted)}
+.tr-tip .r i{width:10px;height:3px;border-radius:2px;flex:none}
+.tr-tip .r .v{margin-left:auto;padding-left:12px;font-family:var(--f-mono);color:var(--ink)}
+.tr-tip .r.sep{border-top:1px solid var(--line);margin-top:3px;padding-top:4px}
+.trend-legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--muted);list-style:none;margin:0;padding:0}
+.trend-legend li{display:flex;align-items:center;gap:6px}
+.trend-legend b{font-family:var(--f-mono);font-weight:500;color:var(--ink)}
+.trend-legend .sw{width:10px;height:10px;border-radius:3px;flex:none}
+.trend-legend .ln{width:14px;height:2px;background:var(--ink);flex:none}
+.sw-b{background:var(--c-b)} .sw-n{background:var(--c-n)} .sw-p{background:var(--c-p)}
+.trend-tbl summary{cursor:pointer;font-size:13px;color:var(--muted);width:max-content}
+.trend-tbl summary:hover{color:var(--ink)}
+.trend-tbl table{margin-top:8px}
+.trend-tbl th{white-space:normal;vertical-align:bottom}
+.trend-tbl .tbl-wrap{overflow-x:auto}
 
 /* forms + modal */
 .fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
@@ -474,6 +528,7 @@ function render() {
   const lb = ls.get("billables-last-sent", null);
   const local = `<div class="notice backup"><span>Your data stays on this device. To sync, tap Send here and Load on your other device. The file also works as a backup.${lb ? " Last sent " + esc(fmtDay(lb)) + "." : ""}</span><span class="row"><button class="btn small" data-act="send">Send</button><button class="btn small" data-act="load">Load</button>${lockInfo() ? `<button class="btn small" data-act="lock">Lock</button>` : canLock ? `<button class="btn small" data-act="passcode">Set passcode</button>` : ""}</span></div>`;
   main.innerHTML = local + alertBanner() + (tab === "timers" ? viewTimers() : tab === "history" ? viewHistory() : viewPace());
+  if (tab === "pace") drawTrend();
   tick();
 }
 
@@ -605,6 +660,7 @@ function viewPace() {
       <div class="card"><span class="label">To hit ${p.target.toLocaleString()}</span><span class="v">${hrs(p.need)}<small style="font-size:.55em;color:var(--muted)"> /day</small></span><span class="s">${hrs(p.need * 5)} h a week across ${p.left} workdays left</span></div>
       <div class="card"><span class="label">At your current pace</span><span class="v">${Math.round(p.projected).toLocaleString()}</span><span class="s">Projected for the period (${hrs(p.avg)} h per workday so far)</span></div>
     </div>
+    ${trendPanel(p)}
     <section class="panel"><h3>Pace calculator</h3>
       <p>If you log this many target hours (billable, non-billable and pro bono) each remaining workday, here is where you finish.</p>
       <div class="whatif"><input type="range" id="whatif" min="0" max="16" step="0.5" value="${whatIf}" aria-label="Hours per workday toward target">
@@ -612,7 +668,7 @@ function viewPace() {
       <div class="result-line" id="wiOut">${wiText(p, wi)}</div>
     </section>
     <section class="panel"><h3>Hours by period</h3><div class="tbl-wrap"><table class="brk">
-      <thead><tr><th></th><th>Billable</th><th>Non-billable</th><th>Pro bono</th><th>Other</th><th>Toward target</th></tr></thead>
+      <thead><tr><th></th><th><span class="lg">Billable</span><span class="sm">Bill.</span></th><th><span class="lg">Non-billable</span><span class="sm">Non-bill.</span></th><th>Pro bono</th><th>Other</th><th><span class="lg">Toward target</span><span class="sm">Target</span></th></tr></thead>
       <tbody>${row("Today", p.sums.today)}${row("This week", p.sums.week)}${row("This month", p.sums.month)}${row("Target period", p.sums.period)}</tbody></table></div>
       <p>Counts finalized hours and open timers by their work date. "Other" hours are tracked but don't count toward your target. To correct a finalized day, use the <button class="btn ghost small" data-tab-go="history" style="padding:0;text-decoration:underline">History</button> page.</p></section>
     ${canLock ? `<section class="panel"><h3>App passcode</h3>
@@ -627,6 +683,166 @@ function viewPace() {
         <div class="full"><button class="btn primary" type="submit">Save target</button></div>
       </form></section>`;
 }
+
+/* ---------- trends: hours toward target per day (week, month) or per week (quarter), stacked by type ---------- */
+let trendView = ls.get("billables-trend", "week"), trendOff = 0, trendData = null, trendTable = false, trendAct = -1;
+if (!["week", "month", "quarter"].includes(trendView)) trendView = "week";
+const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+const md = d => d.toLocaleDateString(undefined, {month: "short", day: "numeric"});
+// Finalized hours plus open timers, by work date (same sources as the pace numbers).
+function dailyHours() {
+  const o = {}, add = (d, k, n) => { if (d && n) (o[d] || (o[d] = zero()))[k] += n; };
+  for (const t of Object.values(S.timers)) add(t.date, typeOf(t), tenthsInt(elapsed(t)));
+  for (const [d, x] of Object.entries(totalsByDate())) KEYS.forEach(k => add(d, k, x[k] || 0));
+  return o;
+}
+function trendModel(p) {
+  const view = trendView, today = parseISO(todayStr()), yest = addDays(today, -1);
+  let s, e;
+  if (view === "week") { s = addDays(today, 7 * trendOff - ((today.getDay() + 6) % 7)); e = addDays(s, 6); }
+  else {
+    const m = view === "month" ? today.getMonth() + trendOff : Math.floor(today.getMonth() / 3) * 3 + 3 * trendOff;
+    s = new Date(today.getFullYear(), m, 1); e = new Date(s.getFullYear(), s.getMonth() + (view === "month" ? 1 : 3), 0);
+  }
+  const daily = dailyHours(), ps = parseISO(S.settings.start), pe = parseISO(S.settings.end);
+  // Even pace: the target spread over every workday in the target period.
+  const perWD = p.total ? p.target / p.total : 0;
+  const expect = (a, b) => perWD * workdays(a > ps ? a : ps, b < pe ? b : pe);
+  const bins = [], sum = zero();
+  for (let a = s; a <= e; ) {
+    let b = a;
+    if (view === "quarter") { b = addDays(a, 6 - ((a.getDay() + 6) % 7)); if (b > e) b = e; }
+    const v = zero();
+    for (let d = a; d <= b; d = addDays(d, 1)) { const x = daily[iso(d)]; if (x) KEYS.forEach(k => { v[k] += x[k]; sum[k] += x[k]; }); }
+    bins.push({s: a, e: b, v, exp: expect(a, b), future: a > today, now: a <= today && today <= b});
+    a = addDays(b, 1);
+  }
+  const first = [Object.keys(daily).sort()[0], S.settings.start, todayStr()].filter(Boolean).sort()[0];
+  const current = e >= today;
+  const title = view === "week" ? md(s) + " to " + e.toLocaleDateString(undefined, {month: "short", day: "numeric", year: "numeric"})
+    : view === "month" ? s.toLocaleDateString(undefined, {month: "long", year: "numeric"})
+    : "Q" + (Math.floor(s.getMonth() / 3) + 1) + " " + s.getFullYear() + " · " + s.toLocaleDateString(undefined, {month: "short"}) + " to " + e.toLocaleDateString(undefined, {month: "short"});
+  return {view, s, e, bins, sum, perWD, title, current, prevOK: iso(s) > first, nextOK: trendOff < 0,
+    expTo: expect(s, current ? yest : e)};
+}
+const binLabel = (b, view) => view === "quarter" ? "Week of " + md(b.s) + (b.e > b.s ? " to " + md(b.e) : "")
+  : b.s.toLocaleDateString(undefined, {weekday: "short", month: "short", day: "numeric"});
+function trendPanel(p) {
+  const M = trendData = trendModel(p), v = M.view, unit = v === "quarter" ? "quarter" : v;
+  const chev = d => `<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="${d}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  const tot = counted(M.sum) / 10;
+  let paceTxt = "";
+  if (M.perWD && M.expTo > 0) {
+    const d = tot - M.expTo;
+    paceTxt = ` · <span class="${d < 0 ? "bad" : "good"}">${hrs(Math.abs(d))} h ${d < 0 ? "behind" : "ahead of"}</span> even pace (${hrs(M.expTo)} h${M.current ? " by this morning" : ""})`;
+  }
+  const perLbl = v === "quarter" ? `${hrs(M.perWD * 5)}</b> h per full week` : `${hrs(M.perWD)}</b> h per workday`;
+  const rows = M.bins.filter(b => !b.future).map(b => `<tr><td>${esc(v === "quarter" ? md(b.s) : b.s.toLocaleDateString(undefined, {weekday: "short", day: "numeric"}))}</td>${KEYS.map(k => `<td>${h1(b.v[k])}</td>`).join("")}<td><b>${h1(counted(b.v))}</b></td><td>${b.exp ? hrs(b.exp) : "–"}</td></tr>`).join("");
+  return `<section class="panel trend">
+    <div class="trend-head"><h3>Trends</h3>
+      <div class="seg" role="group" aria-label="Chart range">${[["week", "Week"], ["month", "Month"], ["quarter", "Quarter"]].map(([k, l]) => `<button type="button" data-act="trend-view" data-id="${k}" aria-pressed="${v === k}">${l}</button>`).join("")}</div></div>
+    <div class="trend-nav"><span class="lbl">${esc(M.title)}</span><span class="row">
+      ${trendOff < 0 ? `<button class="btn ghost small" data-act="trend-now">This ${unit}</button>` : ""}
+      <button class="btn small icon-btn" data-act="trend-prev" aria-label="Previous ${unit}"${M.prevOK ? "" : " disabled"}>${chev("M10 3L5 8l5 5")}</button>
+      <button class="btn small icon-btn" data-act="trend-next" aria-label="Next ${unit}"${M.nextOK ? "" : " disabled"}>${chev("M6 3l5 5-5 5")}</button></span></div>
+    <div class="trend-sum"><b>${hrs(tot)}</b> h toward target${paceTxt}</div>
+    <div class="trend-chart" id="trendChart"></div>
+    <ul class="trend-legend">${COUNTED.map(k => `<li><span class="sw sw-${k}"></span>${TYPES[k]} <b>${h1(M.sum[k])}</b></li>`).join("")}
+      ${M.perWD ? `<li><span class="ln"></span>Even pace <b>${perLbl}</li>` : ""}<li>Other <b>${h1(M.sum.o)}</b> (not counted, not charted)</li></ul>
+    <details class="trend-tbl"${trendTable ? " open" : ""}><summary>Show as a table</summary>
+      ${rows ? `<div class="tbl-wrap"><table class="days"><thead><tr><th>${v === "quarter" ? "Week" : "Day"}</th><th>Bill.</th><th>Non-bill.</th><th>Pro bono</th><th>Other</th><th>Target</th><th>Pace</th></tr></thead><tbody>${rows}</tbody></table></div>` : `<p>Nothing to show yet for this ${unit}.</p>`}</details>
+  </section>`;
+}
+// Draws the chart at the panel's real width, after render() has put the panel on the page.
+function drawTrend() {
+  const el = $("#trendChart"), M = trendData;
+  if (!el || !M) return;
+  const bins = M.bins, n = bins.length, W = Math.max(260, Math.round(el.clientWidth));
+  const L = 30, R = 2, T = 18, PH = 170, XB = M.view === "week" ? 34 : 22, H = T + PH + XB;
+  const slot = (W - L - R) / n, bw = Math.max(2, Math.min(24, slot - 2));
+  const tot = b => counted(b.v) / 10;
+  let max = Math.max(0, ...bins.map(b => Math.max(tot(b), b.exp)));
+  if (!(max > 0)) max = M.view === "quarter" ? 40 : 8;
+  const raw = max / 4, pw = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / pw;
+  const step = (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * pw;
+  const top = Math.ceil(max / step - 1e-9) * step, y = h => T + PH - h / top * PH;
+  const f = x => +x.toFixed(2);
+  let g = "", hit = "", bars = "", pace = "", caps = "", xl = "";
+  for (let t = 0; t <= top + 1e-9; t += step) {
+    g += `<line class="${t ? "tr-grid" : "tr-base"}" x1="${L}" x2="${W - R}" y1="${f(y(t)) + .5}" y2="${f(y(t)) + .5}"/>`;
+    g += `<text class="tr-tick" x="${L - 6}" y="${f(y(t)) + 4}" text-anchor="end">${+t.toFixed(1)}</text>`;
+  }
+  const maxI = bins.reduce((a, b, i) => tot(b) > tot(bins[a]) ? i : a, 0);
+  bins.forEach((b, i) => {
+    const x0 = L + slot * i, cx = x0 + slot / 2, bx = cx - bw / 2;
+    hit += `<rect class="tr-hit" data-i="${i}" x="${f(x0)}" y="0" width="${f(slot)}" height="${H}"/>`;
+    // Stacked from the baseline: billable, non-billable, pro bono, with a 2px surface gap between segments.
+    const segs = COUNTED.filter(k => b.v[k] > 0);
+    let base = T + PH;
+    segs.forEach((k, j) => {
+      const h = b.v[k] / 10 / top * PH, gap = j ? 2 : 0;
+      const y1 = base - gap, y0 = Math.min(y1 - 1, base - h);
+      const r = j === segs.length - 1 ? Math.min(4, bw / 2, y1 - y0) : 0;
+      bars += r ? `<path class="tr-${k}" d="M${f(bx)} ${f(y1)}V${f(y0 + r)}A${f(r)} ${f(r)} 0 0 1 ${f(bx + r)} ${f(y0)}H${f(bx + bw - r)}A${f(r)} ${f(r)} 0 0 1 ${f(bx + bw)} ${f(y0 + r)}V${f(y1)}Z"/>`
+        : `<rect class="tr-${k}" x="${f(bx)}" y="${f(y0)}" width="${f(bw)}" height="${f(y1 - y0)}"/>`;
+      base = y0;
+    });
+    if (b.exp > 0) pace += `M${f(x0)} ${f(y(b.exp))}H${f(x0 + slot)}`;
+    if (tot(b) > 0 && (M.view === "week" || i === maxI)) {
+      // Lift the value above the pace line when the line would run through it.
+      let ty = base - 5;
+      if (b.exp > 0 && y(b.exp) > ty - 12 && y(b.exp) < ty + 4) ty = y(b.exp) - 6;
+      caps += `<text class="tr-cap" x="${f(cx)}" y="${f(ty)}" text-anchor="middle">${h1(counted(b.v))}</text>`;
+    }
+    const cls = "tr-x" + (b.now ? " now" : "");
+    if (M.view === "week") xl += `<text class="${cls}" x="${f(cx)}" y="${T + PH + 15}" text-anchor="middle">${esc(b.s.toLocaleDateString(undefined, {weekday: "short"}))}</text><text class="${cls}" x="${f(cx)}" y="${T + PH + 29}" text-anchor="middle">${b.s.getDate()}</text>`;
+    else if (M.view === "month" ? b.s.getDay() === 1 : (!i || b.s.getMonth() !== bins[i - 1].s.getMonth()))
+      xl += `<text class="${cls}" x="${f(cx)}" y="${T + PH + 16}" text-anchor="middle">${M.view === "month" ? b.s.getDate() : esc(b.s.toLocaleDateString(undefined, {month: "short"}))}</text>`;
+  });
+  const label = `Hours toward target by ${M.view === "quarter" ? "week" : "day"}, ${M.title}, stacked by billable, non-billable and pro bono, with the even-pace line. Use the left and right arrow keys to read each ${M.view === "quarter" ? "week" : "day"}, or open the table below.`;
+  el.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" tabindex="0" role="img" aria-label="${esc(label)}">${hit}<g class="tr-marks">${g}${bars}${pace ? `<path class="tr-pace" d="${pace}"/>` : ""}${caps}${xl}</g></svg><div class="tr-tip" hidden aria-live="polite"></div>`;
+  trendAct = -1;
+  const svg = el.firstChild, pick = e => { const r = e.target.closest && e.target.closest(".tr-hit"); return r ? +r.dataset.i : -1; };
+  svg.addEventListener("pointermove", e => { const i = pick(e); if (i >= 0 && i !== trendAct) trendTip(i); });
+  svg.addEventListener("pointerdown", e => { const i = pick(e); if (i >= 0) trendTip(i); });
+  svg.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") trendTip(-1); });
+  svg.addEventListener("focus", () => { if (trendAct < 0) { const k = bins.findIndex(b => b.now); trendTip(k >= 0 ? k : n - 1); } });
+  svg.addEventListener("blur", () => trendTip(-1));
+  svg.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); trendTip(Math.max(0, Math.min(n - 1, (trendAct < 0 ? 0 : trendAct) + (e.key === "ArrowRight" ? 1 : -1)))); }
+    else if (e.key === "Escape") trendTip(-1);
+  });
+  el.dataset.slot = slot; el.dataset.left = L; el.dataset.top = T;
+}
+// Shows the readout for one bar (or hides it with -1). Built with textContent; the values come from the model.
+function trendTip(i) {
+  const el = $("#trendChart"), M = trendData;
+  if (!el || !M) return;
+  const tip = el.querySelector(".tr-tip");
+  el.querySelectorAll(".tr-hit.on").forEach(r => r.classList.remove("on"));
+  trendAct = i;
+  if (i < 0 || !M.bins[i]) { tip.hidden = true; return; }
+  const b = M.bins[i], mk = (tag, cls, txt) => { const x = document.createElement(tag); if (cls) x.className = cls; if (txt != null) x.textContent = txt; return x; };
+  el.querySelector(`.tr-hit[data-i="${i}"]`).classList.add("on");
+  tip.replaceChildren();
+  tip.append(mk("div", "d", binLabel(b, M.view)));
+  const big = mk("div", "big", h1(counted(b.v)) + " h"); big.append(mk("small", "", "toward target")); tip.append(big);
+  const row = (name, val, color) => { const r = mk("div", "r"); const k = mk("i"); k.style.background = color || "transparent"; r.append(k, mk("span", "", name), mk("span", "v", val)); tip.append(r); return r; };
+  COUNTED.forEach(k => row(TYPES[k], h1(b.v[k]), `var(--c-${k})`));
+  row("Other (not counted)", h1(b.v.o)).classList.add("sep");
+  if (M.perWD) row("Even pace", b.exp ? hrs(b.exp) : "None", "var(--ink)");
+  tip.hidden = false;
+  const W = el.clientWidth, tw = tip.offsetWidth, slot = +el.dataset.slot, x0 = +el.dataset.left + slot * i;
+  let left = x0 + slot + 8;
+  if (left + tw > W) left = x0 - tw - 8;
+  tip.style.left = Math.max(0, Math.min(W - tw, left)) + "px";
+  tip.style.top = el.dataset.top + "px";
+}
+let trendResize = 0;
+window.addEventListener("resize", () => { clearTimeout(trendResize); trendResize = setTimeout(drawTrend, 120); });
+document.addEventListener("pointerdown", e => { if (trendAct >= 0 && !e.target.closest("#trendChart")) trendTip(-1); });
+document.addEventListener("toggle", e => { if (e.target.classList && e.target.classList.contains("trend-tbl")) trendTable = e.target.open; }, true);
+
 function viewHistory() {
   const today = parseISO(todayStr()), tS = todayStr();
   const mon = d => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
@@ -892,8 +1108,18 @@ document.addEventListener("click", e => {
     case "forgot": return forgotForm();
     case "toggle": collapsed[id] = !collapsed[id]; ls.set("billables-collapsed", collapsed); return render();
     case "example": return loadExample();
+    case "trend-view": trendView = id; trendOff = 0; ls.set("billables-trend", id); return trendGo(`[data-act="trend-view"][data-id="${id}"]`);
+    case "trend-prev": trendOff--; return trendGo('[data-act="trend-prev"]');
+    case "trend-next": trendOff = Math.min(0, trendOff + 1); return trendGo('[data-act="trend-next"]');
+    case "trend-now": trendOff = 0; return trendGo('[data-act="trend-prev"]');
   }
 });
+// Re-renders after a trend control, keeping keyboard focus on the same control.
+function trendGo(sel) {
+  render();
+  const b = document.querySelector(sel);
+  if (b && !b.disabled) b.focus({preventScroll: true});
+}
 document.addEventListener("input", e => {
   if (e.target.id === "whatif") {
     whatIf = parseFloat(e.target.value);
