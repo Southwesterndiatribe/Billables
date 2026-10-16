@@ -1,0 +1,1034 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Billables Ledger</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Billables">
+<meta name="theme-color" content="#1d5c48">
+<style>
+/* Layout: one working column; sticky header with two pages (Timers, Pace); matter cards nest tasks, tasks nest timers like a ledger. */
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --surface-2:#f5f7f9; --ink:#17202b; --muted:#5a6575; --line:#d8dde4;
+  --accent:#1d5c48; --accent-ink:#ffffff; --accent-soft:#e1eee8;
+  --run:#9a5b00; --run-soft:#fbefd9; --nb:#5d4f9a; --nb-soft:#ece9f7; --danger:#b3261e; --danger-soft:#fbe7e5;
+  --shadow:0 1px 2px rgba(20,30,45,.06),0 2px 8px rgba(20,30,45,.05);
+  --f-display:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1419; --surface:#171d24; --surface-2:#1c232b; --ink:#e6ebf0; --muted:#97a3b2; --line:#2a333d;
+  --accent:#5fbf9b; --accent-ink:#0c1a15; --accent-soft:#163128;
+  --run:#f0a944; --run-soft:#3a2a12; --nb:#ab9ee6; --nb-soft:#27223f; --danger:#f2847b; --danger-soft:#3b1d1b;
+  --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1419; --surface:#171d24; --surface-2:#1c232b; --ink:#e6ebf0; --muted:#97a3b2; --line:#2a333d;
+  --accent:#5fbf9b; --accent-ink:#0c1a15; --accent-soft:#163128;
+  --run:#f0a944; --run-soft:#3a2a12; --nb:#ab9ee6; --nb-soft:#27223f; --danger:#f2847b; --danger-soft:#3b1d1b;
+  --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.wrap{max-width:880px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.2}
+.mono,.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.top-inner{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-block:12px}
+.brand{display:flex;flex-direction:column;gap:0;margin-right:auto}
+.brand h1{font-size:20px}
+.brand small{color:var(--muted);font-size:12px}
+nav.tabs{display:flex;gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:3px}
+nav.tabs button{border:0;background:none;padding:6px 14px;border-radius:7px;font-weight:500;color:var(--muted)}
+nav.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+nav.tabs .count{font-family:var(--f-mono);font-size:12px;color:var(--muted);margin-left:4px}
+
+main{padding-block:20px 80px;display:flex;flex-direction:column;gap:18px}
+.notice{font-size:13px;color:var(--muted);background:var(--surface-2);border:1px dashed var(--line);border-radius:10px;padding:10px 12px}
+.notice.backup{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.notice .row{display:flex;gap:6px;flex-wrap:wrap}
+.lock{max-width:380px;margin:40px auto 0;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px 22px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--shadow)}
+.lock h2{font-size:22px}
+.lock p{margin:0;color:var(--muted);font-size:14px}
+.lock form{display:flex;gap:8px}
+.lock input{flex:1;min-width:0;font-size:17px;letter-spacing:.1em}
+.lock .forgot{align-self:flex-start}
+.notice.warn{color:var(--run);background:var(--run-soft);border-color:transparent}
+
+.btn{border:1px solid var(--line);background:var(--surface);padding:7px 12px;border-radius:8px;font-size:14px;font-weight:500;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{border-color:transparent;background:none;color:var(--muted);padding:6px 8px}
+.btn.ghost:hover{color:var(--ink);background:var(--surface-2)}
+.btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
+.btn.small{padding:5px 10px;font-size:13px}
+.btn.run{background:var(--run);border-color:var(--run);color:var(--surface)}
+
+/* pace strip */
+.strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.strip > div{background:var(--surface);padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.label{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.strip .v{font-family:var(--f-mono);font-size:20px;font-variant-numeric:tabular-nums}
+.strip .s{font-size:12px;color:var(--muted)}
+.good{color:var(--accent)} .bad{color:var(--danger)}
+@media (max-width:620px){.strip{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.running-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--run-soft);border-radius:12px;padding:10px 14px}
+.running-bar .dot{width:9px;height:9px;border-radius:50%;background:var(--run);animation:pulse 1.4s ease-in-out infinite}
+.running-bar .what{flex:1 1 220px;min-width:0;font-size:14px}
+.running-bar .what b{font-weight:600}
+.running-bar .clock{font-family:var(--f-mono);font-size:18px;color:var(--run)}
+@keyframes pulse{50%{opacity:.35}}
+.alert-bar{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;background:var(--danger-soft);border:1px solid color-mix(in srgb,var(--danger) 35%,transparent);border-radius:12px;padding:12px 14px}
+.alert-bar .msg{flex:1 1 260px;min-width:0;font-size:14px}
+.alert-bar .msg b{font-weight:600}
+.alert-bar .msg .label{display:block;color:var(--danger);margin-bottom:2px}
+.timer .warn{color:var(--danger);font-weight:500}
+@media (prefers-reduced-motion:reduce){.running-bar .dot{animation:none}}
+
+.section-head{display:flex;align-items:end;gap:12px;flex-wrap:wrap}
+.section-head h2{font-size:22px;margin-right:auto}
+.section-head p{margin:0;color:var(--muted);font-size:13px;width:100%}
+
+/* layer 1 */
+.matter{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+.m-head{display:flex;align-items:center;gap:10px;padding:14px 14px 14px 10px;flex-wrap:wrap}
+.chev{border:0;background:none;width:30px;height:30px;border-radius:6px;color:var(--muted);display:grid;place-items:center;flex:none}
+.chev:hover{background:var(--surface-2)}
+.chev svg{transition:transform .15s}
+.matter.collapsed .chev svg{transform:rotate(-90deg)}
+.m-title{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.m-title h3{font-size:18px;overflow-wrap:break-word}
+.cm{font-family:var(--f-mono);font-size:12.5px;color:var(--muted)}
+.cm b{color:var(--ink);font-weight:500}
+.m-hours{text-align:right;font-size:12px;color:var(--muted)}
+.m-hours .num{display:block;font-size:16px;color:var(--ink)}
+.acts{display:flex;gap:4px;flex-wrap:wrap}
+.matter.collapsed .tasks{display:none}
+.tasks{border-top:1px solid var(--line);padding:4px 14px 14px 14px;display:flex;flex-direction:column}
+
+/* layer 2 */
+.task{padding-top:12px;display:flex;flex-direction:column;gap:8px}
+.task + .task{border-top:1px dashed var(--line);margin-top:12px}
+.t-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.t-head .tname{font-weight:600;flex:1;min-width:0;overflow-wrap:break-word;padding-left:4px}
+.t-head .tname .lvl{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-right:8px}
+.t-head .num{font-size:13px;color:var(--muted)}
+.fin-note{font-size:12px;color:var(--muted);padding-left:4px}
+
+/* layer 3 */
+.timers{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.timer{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:12px;background:var(--surface-2);border:1px solid transparent;border-radius:10px;padding:9px 10px 9px 12px}
+.timer.running{background:var(--run-soft);border-color:color-mix(in srgb,var(--run) 35%,transparent)}
+.timer .info{min-width:0;display:flex;flex-direction:column;gap:3px}
+.timer .nm{font-weight:500;overflow-wrap:break-word}
+.meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;border-radius:999px;padding:2px 8px;border:0}
+.chip.b{background:var(--accent-soft);color:var(--accent)}
+.chip.n{background:var(--nb-soft);color:var(--nb)}
+.chip.p{background:var(--run-soft);color:var(--run)}
+.chip.o{background:var(--surface);color:var(--muted);box-shadow:inset 0 0 0 1px var(--line)}
+.panel > *{min-width:0}
+.tbl-wrap{max-width:100%}
+@media (max-width:560px){.brk td,.brk th{padding:6px 4px;font-size:12px}.brk th{font-size:10px;letter-spacing:.04em}}
+.week{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.week > header{display:flex;align-items:baseline;gap:8px 16px;flex-wrap:wrap;padding:12px 16px;background:var(--surface-2);border-bottom:1px solid var(--line)}
+.week > header h3{font-size:16px;margin-right:auto}
+.week > header .wk-tot{font-family:var(--f-mono);font-size:18px}
+.week > header .wk-tot small{font-family:var(--f-body);font-size:12px;color:var(--muted);margin-left:4px}
+.week > header .wk-mix{width:100%;font-size:12px;color:var(--muted)}
+.days{width:100%;border-collapse:collapse;font-size:13.5px}
+.days td,.days th{padding:7px 8px;border-top:1px solid var(--line);text-align:right;font-family:var(--f-mono);white-space:nowrap}
+.days th{border-top:0;font-family:var(--f-body);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.days td:first-child,.days th:first-child{text-align:left;font-family:var(--f-body)}
+.days tr.zero td{color:var(--muted)}
+.days tr.zero td.gap{font-family:var(--f-body);font-size:12.5px;text-align:left}
+.daybtn{border:0;background:none;padding:0;font:inherit;color:var(--ink);text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
+.daybtn:hover{text-decoration-color:var(--accent)}
+.days tr.zero .daybtn{color:var(--muted)}
+@media (max-width:560px){.days td,.days th{padding:6px 4px;font-size:12px}.days th{font-size:10px;letter-spacing:.03em}}
+.adj{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:560px){.adj{grid-template-columns:repeat(2,minmax(0,1fr))}}
+button.chip:hover{filter:brightness(.97)}
+.time{text-align:right;display:flex;flex-direction:column;gap:0}
+.time .clk{font-family:var(--f-mono);font-size:16px;font-variant-numeric:tabular-nums}
+.timer.running .clk{color:var(--run)}
+.time .tn{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.timer .acts{justify-content:flex-end}
+.empty-line{font-size:13px;color:var(--muted);padding:8px 12px;border:1px dashed var(--line);border-radius:10px}
+@media (max-width:560px){
+  .timer{grid-template-columns:minmax(0,1fr) auto}
+  .timer .acts{grid-column:1 / -1;justify-content:flex-start}
+  .m-hours{display:none}
+  .m-head .acts,.t-head .acts{flex-basis:100%}
+  .m-head .acts{padding-left:40px}
+}
+
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:14px;padding:28px 22px;display:flex;flex-direction:column;gap:12px;align-items:flex-start}
+.empty h3{font-size:20px}
+.empty p{margin:0;color:var(--muted);max-width:60ch}
+.empty .row{display:flex;gap:8px;flex-wrap:wrap}
+
+
+/* pace page */
+.hero-num{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:12px}
+.hero-num .big{font-family:var(--f-mono);font-size:clamp(34px,8vw,52px);line-height:1;font-variant-numeric:tabular-nums}
+.hero-num .big small{font-size:.4em;color:var(--muted)}
+.meter{position:relative;height:12px;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.meter .fill{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:999px}
+.meter .mark{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--ink)}
+.meter-legend{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:620px){.grid3{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.card .v{font-family:var(--f-mono);font-size:24px;font-variant-numeric:tabular-nums}
+.card .s{font-size:12.5px;color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+.panel h3{font-size:17px}
+.panel p{margin:0;color:var(--muted);font-size:13.5px}
+.whatif{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.whatif input[type=range]{flex:1;min-width:160px;accent-color:var(--accent)}
+.whatif .num{font-size:15px}
+.result-line{font-size:15px}
+.result-line b{font-family:var(--f-mono);font-weight:500}
+.brk td,.brk th{padding:7px 8px;border-top:1px solid var(--line);text-align:right;font-family:var(--f-mono)}
+.brk th{font-family:var(--f-body);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600;border-top:0}
+.brk td:first-child,.brk th:first-child{text-align:left;font-family:var(--f-body)}
+
+/* forms + modal */
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.fields .full{grid-column:1 / -1}
+@media (max-width:520px){.fields{grid-template-columns:minmax(0,1fr)}}
+label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:500}
+label.f span.hint{font-weight:400;color:var(--muted);font-size:12px}
+input[type=text],input[type=number],input[type=date]{font:inherit;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;min-width:0}
+input.mono{font-family:var(--f-mono)}
+.seg{display:flex;border:1px solid var(--line);border-radius:9px;padding:3px;gap:3px;background:var(--surface-2)}
+.seg{flex-wrap:wrap}
+.seg button{flex:1 1 auto;border:0;background:none;padding:7px 8px;border-radius:6px;font-weight:500;color:var(--muted);font-size:14px}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+.overlay{position:fixed;inset:0;z-index:20;background:rgba(10,15,22,.45);display:flex;align-items:flex-start;justify-content:center;padding:max(48px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px));overflow-y:auto}
+.modal{background:var(--surface);border-radius:14px;width:100%;max-width:480px;padding:20px;display:flex;flex-direction:column;gap:16px;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+.modal h3{font-size:19px}
+.modal .crumb{font-size:12.5px;color:var(--muted);margin-top:-10px}
+.modal .foot{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.err{color:var(--danger);font-size:13px}
+.toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:30;background:var(--ink);color:var(--bg);padding:10px 12px 10px 16px;border-radius:10px;display:flex;gap:12px;align-items:center;font-size:14px;max-width:calc(100% - 32px);box-shadow:0 6px 24px rgba(0,0,0,.25)}
+.toast button{background:none;border:0;color:var(--bg);font-weight:600;text-decoration:underline;padding:4px}
+footer.foot-note{font-size:12px;color:var(--muted);padding-block:0 30px}
+</style>
+</head><body>
+
+
+<header class="top">
+  <div class="wrap top-inner">
+    <div class="brand"><h1>Billables Ledger</h1><small id="saveState">Connecting…</small></div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" id="tab-timers" data-tab="timers" aria-selected="true">Timers</button>
+      <button role="tab" id="tab-pace" data-tab="pace" aria-selected="false">Pace</button>
+      <button role="tab" id="tab-history" data-tab="history" aria-selected="false">History</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap" id="main">
+  <div class="empty"><h3>Loading your ledger</h3><p>Your matters, tasks and timers will appear here.</p></div>
+</main>
+<footer class="wrap foot-note">Time rounds up to the next tenth of an hour (6 minutes) per timer. Use nicknames that make sense only to you. Keep client names, matter numbers and case details in the firm's own systems.</footer>
+
+<div id="overlay" class="overlay" hidden></div>
+<div id="toast" class="toast" hidden></div>
+<input type="file" id="restoreFile" accept=".json,application/json,text/plain" hidden>
+
+<script>
+(() => {
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const pad = n => String(n).padStart(2, "0");
+const iso = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+const todayStr = () => iso(new Date());
+const parseISO = s => { const [y, m, d] = String(s).split("-").map(Number); return new Date(y, (m || 1) - 1, d || 1); };
+const fmtDay = s => parseISO(s).toLocaleDateString(undefined, {month: "short", day: "numeric", year: "numeric"});
+const elapsed = t => (t.elapsedMs || 0) + (t.runningSince ? Math.max(0, Date.now() - t.runningSince) : 0);
+const tenthsInt = ms => ms <= 0 ? 0 : Math.ceil(ms / 360000 - 1e-6);
+const h1 = n => (n / 10).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
+const TYPES = {b: "Billable", n: "Non-billable", p: "Pro bono", o: "Other"};
+const KEYS = ["b", "n", "p", "o"], COUNTED = ["b", "n", "p"];
+const typeOf = t => TYPES[t.type] ? t.type : (t.billable === false ? "n" : "b");
+const zero = () => ({b: 0, n: 0, p: 0, o: 0});
+const counted = o => o.b + o.n + o.p;
+const hrs = x => x.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1});
+const clock = ms => { const s = Math.floor(ms / 1000); return Math.floor(s / 3600) + ":" + pad(Math.floor(s / 60) % 60) + ":" + pad(s % 60); };
+function workdays(a, b) {
+  if (b < a) return 0;
+  let n = 0; const d = new Date(a.getFullYear(), a.getMonth(), a.getDate());
+  while (d <= b) { const w = d.getDay(); if (w && w < 6) n++; d.setDate(d.getDate() + 1); }
+  return n;
+}
+const ls = {
+  get(k, f) { try { const v = localStorage.getItem(k); return v == null ? f : JSON.parse(v); } catch { return f; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+
+/* ---------- store: everything lives in this browser; devices sync by passing a file ---------- */
+const _s = new Date(), _e = new Date(_s.getFullYear() + 1, _s.getMonth(), _s.getDate() - 1);
+const DEFAULTS = {target: 2000, start: iso(_s), end: iso(_e), updatedAt: 0};
+const COLLS = ["matters", "tasks", "timers", "entries"];
+const S = {mode: "local", matters: {}, tasks: {}, timers: {}, entries: {}, gone: {}, settings: {...DEFAULTS}};
+const LOCAL_KEY = "billables-app-v1";
+let device = ls.get("billables-device", null);
+if (!device) { device = uid(); ls.set("billables-device", device); }
+
+function snapshot() { return {matters: S.matters, tasks: S.tasks, timers: S.timers, entries: S.entries, gone: S.gone, settings: S.settings}; }
+let saveWarned = false, saveChain = Promise.resolve();
+function store(v) {
+  try { localStorage.setItem(LOCAL_KEY, JSON.stringify(v)); }
+  catch { if (!saveWarned) { saveWarned = true; toast("Couldn't save on this device. Check that website data isn't blocked for this app."); } }
+}
+// With a passcode on, the data is encrypted before it is written; writes are chained so they land in order.
+function saveLocal() {
+  const snap = snapshot();
+  if (!lockInfo()) return store(snap);
+  if (!L.key || S.locked) return;
+  const key = L.key;
+  saveChain = saveChain.then(() => seal(key, snap)).then(box => store({enc: 1, ...box})).catch(() => toast("Couldn't save on this device."));
+}
+
+/* ---------- passcode: PBKDF2-derived AES-GCM key; only the encrypted data is stored ---------- */
+const LOCK_KEY = "billables-lock", ITER = 200000;
+const L = {key: null, pass: null};
+const te = new TextEncoder(), td = new TextDecoder();
+const canLock = !!(window.crypto && crypto.subtle);
+const lockInfo = () => ls.get(LOCK_KEY, null);
+function b64(buf) { const a = new Uint8Array(buf); let x = ""; for (let i = 0; i < a.length; i += 0x8000) x += String.fromCharCode.apply(null, a.subarray(i, i + 0x8000)); return btoa(x); }
+const unb64 = x => Uint8Array.from(atob(x), c => c.charCodeAt(0));
+async function deriveKey(pass, salt) {
+  const base = await crypto.subtle.importKey("raw", te.encode(pass), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({name: "PBKDF2", salt, iterations: ITER, hash: "SHA-256"}, base, {name: "AES-GCM", length: 256}, false, ["encrypt", "decrypt"]);
+}
+async function seal(key, obj) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({name: "AES-GCM", iv}, key, te.encode(JSON.stringify(obj)));
+  return {iv: b64(iv), ct: b64(ct)};
+}
+async function unseal(key, box) {
+  const pt = await crypto.subtle.decrypt({name: "AES-GCM", iv: unb64(box.iv)}, key, unb64(box.ct));
+  return JSON.parse(td.decode(pt));
+}
+function loadData(d) {
+  COLLS.forEach(c => { S[c] = (d && d[c]) || {}; });
+  S.gone = (d && d.gone) || {}; S.settings = {...DEFAULTS, ...((d && d.settings) || {})};
+}
+function clearMemory() { loadData(null); }
+// Throws if the passcode is wrong (the check value won't decrypt).
+async function unlock(pass) {
+  const info = lockInfo();
+  const key = await deriveKey(pass, unb64(info.salt));
+  await unseal(key, info.check);
+  const raw = ls.get(LOCAL_KEY, null);
+  loadData(raw && raw.enc ? await unseal(key, raw) : raw);
+  L.key = key; L.pass = pass; S.locked = false;
+  render(); migrateFinalized(true);
+}
+async function setPasscode(pass) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const key = await deriveKey(pass, salt);
+  const check = await seal(key, {ok: 1});
+  ls.set(LOCK_KEY, {salt: b64(salt), check});
+  L.key = key; L.pass = pass;
+  saveLocal(); await saveChain;
+}
+async function verifyPass(pass) {
+  try { const info = lockInfo(); await unseal(await deriveKey(pass, unb64(info.salt)), info.check); return true; } catch { return false; }
+}
+async function turnOffPasscode() {
+  try { localStorage.removeItem(LOCK_KEY); } catch {}
+  L.key = null; L.pass = null;
+  saveLocal();
+}
+async function lockNow() {
+  if (!lockInfo()) return;
+  await saveChain;
+  L.key = null; L.pass = null; S.locked = true;
+  clearMemory(); closeModal(); render();
+}
+let hiddenAt = 0;
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) hiddenAt = Date.now();
+  else if (hiddenAt && Date.now() - hiddenAt > 5 * 60000 && lockInfo() && !S.locked) lockNow();
+});
+// Every record carries updatedAt; deletions leave a dated tombstone in S.gone so a merge can't bring them back.
+function put(coll, obj) {
+  obj = {...obj, updatedAt: Date.now()};
+  S[coll] = {...S[coll], [obj.id]: obj};
+  if (S.gone[obj.id]) { const g = {...S.gone}; delete g[obj.id]; S.gone = g; }
+  render(); saveLocal(); return Promise.resolve();
+}
+function del(coll, id) {
+  const c = {...S[coll]}; delete c[id]; S[coll] = c;
+  S.gone = {...S.gone, [id]: Date.now()};
+  render(); saveLocal(); return Promise.resolve();
+}
+function saveSettings(s) {
+  S.settings = {...S.settings, ...s, updatedAt: Date.now()};
+  render(); saveLocal(); return Promise.resolve();
+}
+
+function init() {
+  if (lockInfo() && canLock) { S.locked = true; render(); }
+  else {
+    const d = ls.get(LOCAL_KEY, null);
+    if (d && !d.enc) loadData(d); else saveLocal();
+    render(); migrateFinalized();
+  }
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch {}
+  if ("serviceWorker" in navigator && window.isSecureContext && location.protocol !== "file:") navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+
+// Finalized hours are kept as small dated entries (date, type, tenths). Summing them gives each day's totals,
+// and entries from two devices merge without overwriting each other.
+function totalsByDate() {
+  const o = {};
+  for (const e of Object.values(S.entries)) {
+    if (!e || !TYPES[e.k]) continue;
+    const x = o[e.date] || (o[e.date] = zero());
+    x[e.k] += e.t || 0;
+  }
+  return o;
+}
+function addEntry(date, k, t) {
+  if (!t) return null;
+  const id = uid();
+  put("entries", {id, date, k, t, at: Date.now(), device});
+  return id;
+}
+
+/* ---------- derived ---------- */
+const mattersSorted = () => Object.values(S.matters).sort((a, b) =>
+  (a.nickname || "").localeCompare(b.nickname || "", undefined, {numeric: true}) ||
+  (a.createdAt || 0) - (b.createdAt || 0));
+const tasksOf = mid => Object.values(S.tasks).filter(t => t.matterId === mid).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+const timersOf = tid => Object.values(S.timers).filter(t => t.taskId === tid).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+const runningTimer = () => Object.values(S.timers).find(t => t.runningSince);
+
+function pace() {
+  const st = S.settings, start = parseISO(st.start), end = parseISO(st.end);
+  const today = parseISO(todayStr()), yest = new Date(today); yest.setDate(yest.getDate() - 1);
+  const total = workdays(start, end);
+  const done = today <= start ? 0 : workdays(start, yest < end ? yest : end);
+  const left = today > end ? 0 : workdays(today > start ? today : start, end);
+  const todayWD = today >= start && today <= end && today.getDay() > 0 && today.getDay() < 6 ? 1 : 0;
+  const wk = new Date(today); wk.setDate(wk.getDate() - ((wk.getDay() + 6) % 7));
+  const wkS = iso(wk), moS = iso(new Date(today.getFullYear(), today.getMonth(), 1)), tS = iso(today);
+  const sums = {today: zero(), week: zero(), month: zero(), period: zero()};
+  let fin = 0;
+  const add = (d, k, n) => {
+    if (d >= st.start && d <= st.end) sums.period[k] += n;
+    if (d === tS) sums.today[k] += n;
+    if (d >= wkS && d <= tS) sums.week[k] += n;
+    if (d >= moS && d <= tS) sums.month[k] += n;
+  };
+  for (const t of Object.values(S.timers)) add(t.date || "", typeOf(t), tenthsInt(elapsed(t)));
+  for (const [d, x] of Object.entries(totalsByDate())) {
+    KEYS.forEach(k => add(d, k, x[k] || 0));
+    if (d >= st.start && d <= st.end) fin += COUNTED.reduce((a, k) => a + (x[k] || 0), 0);
+  }
+  const billed = counted(sums.period) / 10, target = Number(st.target) || 0;
+  const expected = total ? target * done / total : 0;
+  const daysSoFar = done + todayWD;
+  const avg = daysSoFar ? billed / daysSoFar : 0;
+  const need = left ? Math.max(0, target - billed) / left : 0;
+  return {total, done, left, billed, fin: fin / 10, target, expected, diff: billed - expected, avg, projected: avg * total, need, sums};
+}
+
+/* ---------- render ---------- */
+let tab = ls.get("billables-tab", "timers");
+if (!["pace", "history"].includes(tab)) tab = "timers";
+if (/^#(timers|pace|history)$/.test(location.hash)) tab = location.hash.slice(1);
+let collapsed = ls.get("billables-collapsed", {});
+
+function render() {
+  document.querySelectorAll("nav.tabs button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === tab)));
+  const main = $("#main");
+  document.querySelector("nav.tabs").hidden = !!S.locked;
+  if (S.locked) {
+    $("#saveState").textContent = "Locked";
+    main.innerHTML = `<section class="lock"><h2>Enter your passcode</h2><p>Your hours are encrypted on this device.</p>
+      <form id="unlockForm"><input type="password" id="unlockPass" autocomplete="current-password" aria-label="Passcode"><button class="btn primary" type="submit">Unlock</button></form>
+      <div class="err" id="lockErr" role="alert"></div>
+      <button class="btn ghost small forgot" data-act="forgot">Forgot passcode?</button></section>`;
+    setTimeout(() => { const i = $("#unlockPass"); if (i) i.focus(); }, 30);
+    return;
+  }
+  $("#saveState").textContent = lockInfo() ? "Encrypted on this device" : "Saved on this device only";
+  const lb = ls.get("billables-last-sent", null);
+  const local = `<div class="notice backup"><span>Your data stays on this device. To sync, tap Send here and Load on your other device. The file also works as a backup.${lb ? " Last sent " + esc(fmtDay(lb)) + "." : ""}</span><span class="row"><button class="btn small" data-act="send">Send</button><button class="btn small" data-act="load">Load</button>${lockInfo() ? `<button class="btn small" data-act="lock">Lock</button>` : canLock ? `<button class="btn small" data-act="passcode">Set passcode</button>` : ""}</span></div>`;
+  main.innerHTML = local + alertBanner() + (tab === "timers" ? viewTimers() : tab === "history" ? viewHistory() : viewPace());
+  tick();
+}
+
+function strip() {
+  const p = pace(), behind = p.diff < 0;
+  return `<section class="strip" aria-label="Pace summary">
+    <div><span class="label">Toward target</span><span class="v">${hrs(p.billed)}</span><span class="s">of ${p.target.toLocaleString()} target</span></div>
+    <div><span class="label">${behind ? "Behind pace" : "Ahead of pace"}</span><span class="v ${behind ? "bad" : "good"}">${behind ? "−" : "+"}${hrs(Math.abs(p.diff))}</span><span class="s">vs. ${hrs(p.expected)} on-pace</span></div>
+    <div><span class="label">Needed per workday</span><span class="v">${hrs(p.need)}</span><span class="s">${p.left} workdays left</span></div>
+    <div><span class="label">Today</span><span class="v" data-live-today>${h1(counted(p.sums.today))}</span><span class="s">${h1(p.sums.today.b)} billable · ${h1(p.sums.today.o)} other</span></div>
+  </section>`;
+}
+
+const WARN_MS = 3 * 3600000;
+let acks = ls.get("billables-acks", {});
+const fmtDur = ms => { const m = Math.floor(ms / 60000); return Math.floor(m / 60) + "h " + (m % 60) + "m"; };
+function staleInfo() {
+  const t = runningTimer(); if (!t) return null;
+  const now = Date.now(), ack = acks[t.id] || 0;
+  const ref = Math.max(t.runningSince, ack);
+  const crossed = iso(new Date(t.runningSince)) !== todayStr() && !(ack > t.runningSince && iso(new Date(ack)) === todayStr());
+  return now - ref > WARN_MS || crossed ? {t, crossed, run: now - t.runningSince} : null;
+}
+function alertBanner() {
+  const st = staleInfo(); if (!st) return "";
+  const {t, crossed, run} = st, started = new Date(t.runningSince);
+  const when = started.toLocaleString(undefined, {weekday: "short", hour: "numeric", minute: "2-digit"});
+  const msg = crossed
+    ? `<b>${esc(t.name)}</b> has been running since ${esc(when)}.`
+    : `<b>${esc(t.name)}</b> has been running for ${fmtDur(run)} without a break.`;
+  return `<div class="alert-bar" role="alert"><div class="msg"><span class="label">Check this timer</span>${msg} Did you forget to stop it?</div>
+    <button class="btn small" data-act="ack" data-id="${t.id}">Still working</button>
+    <button class="btn small danger" data-act="fixtime" data-id="${t.id}">Stop and fix time</button></div>`;
+}
+
+function runningBar() {
+  const t = runningTimer(); if (!t) return "";
+  const task = S.tasks[t.taskId] || {}, m = S.matters[t.matterId] || {};
+  return `<div class="running-bar"><span class="dot" aria-hidden="true"></span>
+    <div class="what">Running: <b>${esc(t.name)}</b> <span style="color:var(--muted)">· ${esc(m.nickname || "Matter")} › ${esc(task.name)}</span></div>
+    <span class="clock" data-live="${t.id}">${clock(elapsed(t))}</span>
+    <button class="btn small" data-act="pause" data-id="${t.id}">Pause</button></div>`;
+}
+
+const chevron = `<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 5l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+function viewTimers() {
+  const ms = mattersSorted();
+  let out = strip() + runningBar();
+  const dayN = Object.values(S.timers).filter(x => elapsed(x) > 0).length;
+  out += `<div class="section-head"><h2>Matters</h2>${dayN ? `<button class="btn" data-act="finalize-day">Finalize the day</button>` : ""}<button class="btn primary" data-act="new-matter">New matter</button></div>`;
+  if (!ms.length) {
+    out += `<div class="empty"><h3>Start with your first matter</h3>
+      <p>Give each matter a nickname only you would recognize. Each matter holds its tasks, and each task holds the timers you start and stop. When a timer is done, finalize it: its hours go into your totals on the Pace page and the timer is cleared away.</p>
+      <div class="row"><button class="btn primary" data-act="new-matter">Add a matter</button><button class="btn" data-act="example">Load an example to try it out</button></div></div>`;
+    return out;
+  }
+  for (const m of ms) {
+    const ts = tasksOf(m.id);
+    let open = 0;
+    ts.forEach(t => timersOf(t.id).forEach(x => { open += tenthsInt(elapsed(x)); }));
+    const col = !!collapsed[m.id];
+    out += `<article class="matter${col ? " collapsed" : ""}">
+      <div class="m-head">
+        <button class="chev" data-act="toggle" data-id="${m.id}" aria-expanded="${!col}" aria-label="${col ? "Expand" : "Collapse"} ${esc(m.nickname || "matter")}">${chevron}</button>
+        <div class="m-title"><h3>${esc(m.nickname || "Untitled matter")}</h3></div>
+        <div class="m-hours"><span class="num">${h1(open)}</span>open hours</div>
+        <div class="acts">
+          <button class="btn small" data-act="new-task" data-id="${m.id}">Add task</button>
+          <button class="btn ghost small" data-act="edit-matter" data-id="${m.id}">Edit</button>
+          <button class="btn ghost small" data-act="delete-matter" data-id="${m.id}">Delete</button>
+        </div>
+      </div>
+      <div class="tasks">`;
+    if (!ts.length) out += `<div class="task"><div class="empty-line">No tasks yet. Add a task with a nickname such as "Review" or "Memo".</div></div>`;
+    for (const t of ts) {
+      const live = timersOf(t.id);
+      const openT = live.reduce((s, x) => s + tenthsInt(elapsed(x)), 0);
+      out += `<div class="task">
+        <div class="t-head"><span class="tname"><span class="lvl">Task</span>${esc(t.name)}</span>
+          <span class="num">${h1(openT)} h</span>
+          <div class="acts">
+            <button class="btn small" data-act="new-timer" data-id="${t.id}">Add timer</button>
+            <button class="btn small" data-act="finalize-task" data-id="${t.id}">Finalize task</button>
+            <button class="btn ghost small" data-act="edit-task" data-id="${t.id}">Edit</button>
+            <button class="btn ghost small" data-act="delete-task" data-id="${t.id}">Delete</button>
+          </div></div>`;
+      if (live.length) {
+        out += `<ul class="timers">` + live.map(timerRow).join("") + `</ul>`;
+      } else {
+        out += `<div class="empty-line">No open timers.</div>`;
+      }
+      out += `</div>`;
+    }
+    out += `</div></article>`;
+  }
+  return out;
+}
+
+function timerRow(x) {
+  const run = !!x.runningSince, ms = elapsed(x);
+  return `<li class="timer${run ? " running" : ""}">
+    <div class="info"><span class="nm">${esc(x.name)}</span>
+      <span class="meta"><button class="chip ${typeOf(x)}" data-act="flip" data-id="${x.id}" title="Tap to change the type">${TYPES[typeOf(x)]}</button><span>${fmtDay(x.date)}</span>${run && staleInfo() && staleInfo().t.id === x.id ? `<span class="warn">Check: running ${fmtDur(Date.now() - x.runningSince)}</span>` : ""}</span></div>
+    <div class="time"><span class="clk" data-live="${x.id}">${clock(ms)}</span><span class="tn" data-live-t="${x.id}">${h1(tenthsInt(ms))} h</span></div>
+    <div class="acts">
+      ${run ? `<button class="btn small run" data-act="pause" data-id="${x.id}">Pause</button>` : `<button class="btn small primary" data-act="start" data-id="${x.id}">${ms > 0 ? "Resume" : "Start"}</button>`}
+      <button class="btn small" data-act="finalize" data-id="${x.id}">Finalize</button>
+      <button class="btn ghost small" data-act="edit-timer" data-id="${x.id}">Edit</button>
+    </div></li>`;
+}
+
+let whatIf = null;
+function viewPace() {
+  const p = pace(), behind = p.diff < 0, st = S.settings;
+  if (whatIf == null) whatIf = Math.min(14, Math.max(4, Math.round((p.need || 8) * 2) / 2));
+  const pct = p.target ? Math.min(100, p.billed / p.target * 100) : 0;
+  const mk = p.target ? Math.min(100, p.expected / p.target * 100) : 0;
+  const wi = p.billed + whatIf * p.left;
+  const row = (l, a) => `<tr><td>${l}</td><td>${h1(a.b)}</td><td>${h1(a.n)}</td><td>${h1(a.p)}</td><td>${h1(a.o)}</td><td><b>${h1(counted(a))}</b></td></tr>`;
+  return `<section class="hero-num">
+      <span class="label">Hours toward target · ${fmtDay(st.start)} to ${fmtDay(st.end)}</span>
+      <div class="big">${hrs(p.billed)} <small>/ ${p.target.toLocaleString()} h</small></div>
+      <div class="meter" role="img" aria-label="${hrs(p.billed)} of ${p.target} hours; on-pace mark at ${hrs(p.expected)}"><div class="fill" style="width:${pct}%"></div><div class="mark" style="left:calc(${mk}% - 1px)"></div></div>
+      <div class="meter-legend"><span>${pct.toFixed(1)}% of target · ${h1(p.sums.period.b)} billable, ${h1(p.sums.period.n)} non-billable, ${h1(p.sums.period.p)} pro bono · ${h1(p.sums.period.o)} other not counted</span><span>Black mark = on-pace (${hrs(p.expected)} h)</span></div>
+    </section>
+    <div class="grid3">
+      <div class="card"><span class="label">${behind ? "Behind pace" : "Ahead of pace"}</span><span class="v ${behind ? "bad" : "good"}">${behind ? "−" : "+"}${hrs(Math.abs(p.diff))}</span><span class="s">On-pace as of this morning: ${hrs(p.expected)} h over ${p.done} workdays</span></div>
+      <div class="card"><span class="label">To hit ${p.target.toLocaleString()}</span><span class="v">${hrs(p.need)}<small style="font-size:.55em;color:var(--muted)"> /day</small></span><span class="s">${hrs(p.need * 5)} h a week across ${p.left} workdays left</span></div>
+      <div class="card"><span class="label">At your current pace</span><span class="v">${Math.round(p.projected).toLocaleString()}</span><span class="s">Projected for the period (${hrs(p.avg)} h per workday so far)</span></div>
+    </div>
+    <section class="panel"><h3>Pace calculator</h3>
+      <p>If you log this many target hours (billable, non-billable and pro bono) each remaining workday, here is where you finish.</p>
+      <div class="whatif"><input type="range" id="whatif" min="0" max="16" step="0.5" value="${whatIf}" aria-label="Hours per workday toward target">
+        <span class="num"><b id="wiH">${hrs(whatIf)}</b> h/day</span></div>
+      <div class="result-line" id="wiOut">${wiText(p, wi)}</div>
+    </section>
+    <section class="panel"><h3>Hours by period</h3><div class="tbl-wrap"><table class="brk">
+      <thead><tr><th></th><th>Billable</th><th>Non-billable</th><th>Pro bono</th><th>Other</th><th>Toward target</th></tr></thead>
+      <tbody>${row("Today", p.sums.today)}${row("This week", p.sums.week)}${row("This month", p.sums.month)}${row("Target period", p.sums.period)}</tbody></table></div>
+      <p>Counts finalized hours and open timers by their work date. "Other" hours are tracked but don't count toward your target. To correct a finalized day, use the <button class="btn ghost small" data-tab-go="history" style="padding:0;text-decoration:underline">History</button> page.</p></section>
+    ${canLock ? `<section class="panel"><h3>App passcode</h3>
+      <p>${lockInfo() ? "On. Your data is encrypted on this device. The app asks for the passcode when it opens and after 5 minutes in the background." : "Off. Turn it on to encrypt your data on this device and require a passcode to open the app."}</p>
+      <div class="row" style="display:flex;gap:8px;flex-wrap:wrap">${lockInfo() ? `<button class="btn" data-act="lock">Lock now</button><button class="btn" data-act="passcode">Change passcode</button><button class="btn ghost" data-act="passcode-off">Turn off</button>` : `<button class="btn primary" data-act="passcode">Set a passcode</button>`}</div></section>` : ""}
+    <section class="panel"><h3>Target settings</h3>
+      <p>The period starts the day you first opened this ledger and runs a year. Change it to match your firm's billing year or a prorated first-year target. Workdays are Monday to Friday.</p>
+      <form id="settingsForm" class="fields">
+        <label class="f full">Annual target (billable + non-billable + pro bono hours)<input type="number" id="setTarget" min="0" step="50" value="${esc(st.target)}"></label>
+        <label class="f">Period starts<input type="date" id="setStart" value="${esc(st.start)}"></label>
+        <label class="f">Period ends<input type="date" id="setEnd" value="${esc(st.end)}"></label>
+        <div class="full"><button class="btn primary" type="submit">Save target</button></div>
+      </form></section>`;
+}
+function viewHistory() {
+  const today = parseISO(todayStr()), tS = todayStr();
+  const mon = d => { const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
+  const TT = totalsByDate();
+  const dates = Object.keys(TT).filter(d => KEYS.some(k => TT[d][k])).sort();
+  let first = dates.length ? parseISO(dates[0]) : today;
+  const ps = parseISO(S.settings.start); if (ps < first) first = ps;
+  let out = `<div class="section-head"><h2>History</h2><button class="btn" data-act="edit-day" data-id="${tS}">Add or fix a day</button>
+    <p>Finalized hours by day and week. Only the totals are kept. Tap a day to correct it.</p></div>`;
+  if (!dates.length) out += `<div class="empty"><h3>No finalized hours yet</h3><p>When you finalize timers, each day's billable, non-billable, pro bono and other hours show up here, grouped by week.</p><button class="btn" data-tab-go="timers">Go to Timers</button></div>`;
+  const stop = mon(first);
+  for (let w = mon(today); w >= stop; w = new Date(w.getFullYear(), w.getMonth(), w.getDate() - 7)) {
+    const sum = zero(); let rows = "";
+    for (let i = 6; i >= 0; i--) {
+      const day = new Date(w.getFullYear(), w.getMonth(), w.getDate() + i), d = iso(day);
+      if (d > tS || day < first) continue;
+      const t = TT[d] || {}, has = KEYS.some(k => t[k]);
+      KEYS.forEach(k => { sum[k] += t[k] || 0; });
+      const label = day.toLocaleDateString(undefined, {weekday: "short", month: "short", day: "numeric"});
+      const lab = `<td><button class="daybtn" data-act="edit-day" data-id="${d}" title="Edit this day">${label}</button></td>`;
+      if (has) rows += `<tr>${lab}${KEYS.map(k => `<td>${h1(t[k] || 0)}</td>`).join("")}<td><b>${h1(COUNTED.reduce((a, k) => a + (t[k] || 0), 0))}</b></td></tr>`;
+      else if (day.getDay() > 0 && day.getDay() < 6) rows += `<tr class="zero">${lab}<td class="gap" colspan="5">${d === tS ? "Nothing finalized yet today" : "No hours finalized"}</td></tr>`;
+    }
+    if (!rows) continue;
+    const end = new Date(w.getFullYear(), w.getMonth(), w.getDate() + 6);
+    const range = w.toLocaleDateString(undefined, {month: "short", day: "numeric"}) + " to " + end.toLocaleDateString(undefined, {month: "short", day: "numeric", year: "numeric"});
+    out += `<section class="week"><header><h3>${range}</h3><span class="wk-tot">${h1(counted(sum))}<small>toward target</small></span>
+      <span class="wk-mix">${h1(sum.b)} billable · ${h1(sum.n)} non-billable · ${h1(sum.p)} pro bono · ${h1(sum.o)} other</span></header>
+      <div class="tbl-wrap"><table class="days"><thead><tr><th>Day</th><th>Bill.</th><th>Non-bill.</th><th>Pro bono</th><th>Other</th><th>Target</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+  }
+  return out;
+}
+function dayForm(d) {
+  const t = totalsByDate()[d] || {};
+  openModal(`<h3>Finalized hours</h3><div class="crumb">Correct or add the hours for one day.</div>
+    <div class="fields"><label class="f full">Day<input type="date" id="fDay" value="${esc(d)}"></label></div>
+    <div class="adj">${KEYS.map(k => `<label class="f">${TYPES[k]}<input type="number" class="mono" id="day-${k}" min="0" step="0.1" value="${((t[k] || 0) / 10).toFixed(1)}"></label>`).join("")}</div>` + footer("Save"), () => {
+    const day = val("fDay"); if (!day) return setErr("Pick a day.");
+    const cur = totalsByDate()[day] || zero(), want = {};
+    for (const k of KEYS) { const v = parseFloat($("#day-" + k).value || "0"); if (!(v >= 0)) return setErr("Enter hours as numbers, such as 1.5."); want[k] = Math.round(v * 10); }
+    KEYS.forEach(k => addEntry(day, k, want[k] - (cur[k] || 0)));
+    closeModal(); toast(`Saved hours for ${fmtDay(day)}.`);
+  }, "#day-b");
+  $("#fDay").addEventListener("change", e => {
+    const x = totalsByDate()[e.target.value] || {};
+    KEYS.forEach(k => { $("#day-" + k).value = ((x[k] || 0) / 10).toFixed(1); });
+  });
+}
+
+function wiText(p, wi) {
+  const gap = wi - p.target;
+  return `You would finish at <b>${Math.round(wi).toLocaleString()}</b> hours, ${gap >= 0 ? `<span class="good">${Math.round(gap).toLocaleString()} over</span>` : `<span class="bad">${Math.round(-gap).toLocaleString()} short of</span>`} your ${p.target.toLocaleString()}-hour target.`;
+}
+
+let lastStale = "";
+function tick() {
+  const sk = (staleInfo() || {t: {id: ""}}).t.id;
+  if (sk !== lastStale) { lastStale = sk; return render(); }
+  document.querySelectorAll("[data-live]").forEach(el => { const t = S.timers[el.dataset.live]; if (t) el.textContent = clock(elapsed(t)); });
+  document.querySelectorAll("[data-live-t]").forEach(el => { const t = S.timers[el.dataset.liveT]; if (t) el.textContent = h1(tenthsInt(elapsed(t))) + " h"; });
+  const td = document.querySelector("[data-live-today]");
+  if (td) td.textContent = h1(counted(pace().sums.today));
+}
+setInterval(() => { if (runningTimer()) tick(); }, 1000);
+
+/* ---------- actions ---------- */
+async function pauseTimer(id) {
+  const t = S.timers[id]; if (!t || !t.runningSince) return;
+  await put("timers", {...t, elapsedMs: elapsed(t), runningSince: null});
+}
+async function startTimer(id) {
+  for (const o of Object.values(S.timers)) if (o.runningSince && o.id !== id) await pauseTimer(o.id);
+  const t = S.timers[id]; if (!t || t.runningSince) return;
+  await put("timers", {...t, runningSince: Date.now()});
+}
+// Adds a timer's hours to the day's totals, then deletes the timer for good.
+async function finalizeOne(t) {
+  const n = tenthsInt(elapsed(t)), d = t.date || todayStr();
+  const eid = addEntry(d, typeOf(t), n);
+  await del("timers", t.id);
+  return {n, eid};
+}
+async function finalizeTimer(id) {
+  const t = S.timers[id]; if (!t) return;
+  const prev = {...t, elapsedMs: elapsed(t), runningSince: null};
+  const {n, eid} = await finalizeOne(t);
+  toast(`Finalized: ${h1(n)} h added to your totals.`, "Undo", async () => {
+    if (eid) await del("entries", eid);
+    await put("timers", prev);
+  });
+}
+async function migrateFinalized(again) {
+  if (S.migrated && !again) return; S.migrated = true;
+  for (const t of Object.values(S.timers)) if (t.finalized) await finalizeOne(t);
+}
+function confirmFinalize(kind, id) {
+  const xs = kind === "task" ? timersOf(id) : Object.values(S.timers).filter(x => elapsed(x) > 0);
+  const tot = xs.reduce((a, x) => { a[typeOf(x)] += tenthsInt(elapsed(x)); return a; }, zero());
+  const title = kind === "task" ? `Finalize task "${esc(S.tasks[id].name)}"?` : "Finalize the day?";
+  const what = kind === "task" ? "The task and its timers are then deleted" : "Those timers are then deleted";
+  openModal(`<h3>${title}</h3><p style="margin:0;color:var(--muted)">${xs.length} timer${xs.length === 1 ? "" : "s"} totaling <b class="mono">${h1(tot.b + tot.n + tot.p + tot.o)}</b> hours (${KEYS.filter(k => tot[k]).map(k => h1(tot[k]) + " " + TYPES[k].toLowerCase()).join(", ") || "no time recorded"}) go into your totals. ${what} for good, so enter your time in the firm's system first.</p><div class="err" id="merr"></div><div class="foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn primary" type="submit" value="fin">Finalize</button></div>`, async () => {
+    closeModal();
+    for (const x of xs) await finalizeOne(x);
+    if (kind === "task") await del("tasks", id);
+    toast(`Finalized ${h1(tot.b + tot.n + tot.p + tot.o)} h.`);
+  }, "button.primary");
+}
+
+async function loadExample() {
+  const now = Date.now(), m = {id: uid(), nickname: "Example: Deal A", createdAt: now};
+  await put("matters", m);
+  const t1 = {id: uid(), matterId: m.id, name: "Diligence", createdAt: now + 1};
+  const t2 = {id: uid(), matterId: m.id, name: "Schedules", createdAt: now + 2};
+  await put("tasks", t1); await put("tasks", t2);
+  const d = todayStr();
+  await put("timers", {id: uid(), taskId: t1.id, matterId: m.id, name: "Contract review", billable: true, date: d, elapsedMs: 5580000, runningSince: null, createdAt: now + 3});
+  await put("timers", {id: uid(), taskId: t1.id, matterId: m.id, name: "Team call", billable: true, date: d, elapsedMs: 1800000, runningSince: null, createdAt: now + 4});
+  await put("timers", {id: uid(), taskId: t2.id, matterId: m.id, name: "First draft", billable: true, date: d, elapsedMs: 0, runningSince: null, createdAt: now + 5});
+  toast("Loaded an example matter. Delete it whenever you like.");
+}
+
+async function deleteMatter(id) {
+  for (const t of tasksOf(id)) await deleteTask(t.id);
+  await del("matters", id);
+}
+async function deleteTask(id) {
+  for (const x of timersOf(id)) await del("timers", x.id);
+  await del("tasks", id);
+}
+
+
+/* ---------- modal ---------- */
+const ov = $("#overlay");
+function closeModal() { ov.hidden = true; ov.innerHTML = ""; }
+function openModal(html, onSubmit, focusSel) {
+  ov.innerHTML = `<form class="modal" id="mform" novalidate>${html}</form>`;
+  ov.hidden = false;
+  const f = $("#mform");
+  f.addEventListener("submit", e => { e.preventDefault(); onSubmit(e.submitter && e.submitter.value); });
+  f.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => {
+    f.querySelectorAll(".seg button").forEach(o => o.setAttribute("aria-pressed", String(o === b)));
+  }));
+  const fe = f.querySelector(focusSel || "input"); if (fe) setTimeout(() => fe.focus(), 30);
+}
+ov.addEventListener("click", e => { if (e.target === ov || e.target.closest("[data-close]")) closeModal(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !ov.hidden) closeModal(); });
+const val = id => ($("#" + id).value || "").trim();
+const setErr = m => { $("#merr").textContent = m; };
+const footer = (label, extra = "") => `<div class="err" id="merr" role="alert"></div><div class="foot"><button type="button" class="btn" data-close>Cancel</button>${extra}<button class="btn primary" type="submit" value="save">${label}</button></div>`;
+
+function matterForm(m) {
+  openModal(`<h3>${m ? "Edit matter" : "New matter"}</h3>
+    <label class="f">Matter nickname <span class="hint">Something you'll remember that doesn't name the client, such as "Deal A"</span><input type="text" id="fNick" autocomplete="off" value="${esc(m && m.nickname)}"></label>` + footer(m ? "Save" : "Add matter"), () => {
+    const nickname = val("fNick");
+    if (!nickname) return setErr("Give the matter a nickname.");
+    put("matters", m ? {id: m.id, nickname, createdAt: m.createdAt || Date.now()} : {id: uid(), nickname, createdAt: Date.now()});
+    if (m == null) { /* new matter opens expanded */ }
+    closeModal();
+  });
+}
+function taskForm(matterId, t) {
+  const m = S.matters[t ? t.matterId : matterId] || {};
+  openModal(`<h3>${t ? "Edit task" : "New task"}</h3><div class="crumb">${esc(m.nickname || "Matter")}</div>
+    <label class="f">Task nickname<input type="text" id="fTask" autocomplete="off" value="${esc(t && t.name)}" placeholder="Review"></label>` + footer(t ? "Save" : "Add task"), () => {
+    const name = val("fTask"); if (!name) return setErr("Give the task a nickname.");
+    put("tasks", t ? {...t, name} : {id: uid(), matterId, name, createdAt: Date.now()});
+    closeModal();
+  });
+}
+function timerForm(taskId, x) {
+  const task = S.tasks[x ? x.taskId : taskId] || {}, m = S.matters[task.matterId] || {};
+  const ty = x ? typeOf(x) : "b";
+  openModal(`<h3>${x ? "Edit timer" : "New timer"}</h3><div class="crumb">${esc(m.nickname || "Matter")} › ${esc(task.name)}</div>
+    <div class="fields">
+      <label class="f full">Timer nickname <span class="hint">Keep it generic, such as "Drafting" or "Call"</span><input type="text" id="fTimer" autocomplete="off" value="${esc(x && x.name)}" placeholder="Drafting"></label>
+      <div class="f full" style="display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:500">Type
+        <div class="seg" id="fBill">${KEYS.map(k => `<button type="button" data-v="${k}" aria-pressed="${k === ty}">${TYPES[k]}</button>`).join("")}</div></div>
+      <label class="f">Work date<input type="date" id="fDate" value="${esc(x ? x.date : todayStr())}"></label>
+      ${x ? `<label class="f">Hours recorded <span class="hint">Adjust if you forgot to stop it</span><input type="number" id="fHours" class="mono" min="0" step="0.1" value="${(elapsed(x) / 3600000).toFixed(2)}"></label>` : ""}
+    </div>` + (x ? `<div class="err" id="merr" role="alert"></div><div class="foot"><button type="button" class="btn ghost" id="delTimer" style="margin-right:auto;color:var(--danger)">Delete timer</button><button type="button" class="btn" data-close>Cancel</button><button class="btn primary" type="submit" value="save">Save</button></div>`
+          : footer("Add and start", `<button class="btn" type="submit" value="add">Add</button>`)), async how => {
+    const name = val("fTimer"); if (!name) return setErr("Give the timer a nickname.");
+    const type = $("#fBill [aria-pressed=true]").dataset.v, billable = type === "b";
+    const date = val("fDate") || todayStr();
+    if (x) {
+      const h = parseFloat($("#fHours").value);
+      if (!(h >= 0)) return setErr("Enter hours as a number, such as 1.5.");
+      const cur = S.timers[x.id] || x, oldMs = elapsed(cur), newMs = Math.round(h * 3600000);
+      const changed = Math.abs(newMs - oldMs) > 30000;
+      const patch = {...cur, name, type, billable, date};
+      if (changed) { patch.elapsedMs = newMs; if (cur.runningSince) patch.runningSince = Date.now(); }
+      put("timers", patch);
+    } else {
+      const id = uid();
+      await put("timers", {id, taskId, matterId: task.matterId, name, type, billable, date, elapsedMs: 0, runningSince: null, createdAt: Date.now()});
+      if (how === "save") startTimer(id);
+    }
+    closeModal();
+  });
+  if (x) $("#delTimer").addEventListener("click", () => confirmDelete("timer", x.id));
+}
+function confirmDelete(kind, id) {
+  let title, body;
+  if (kind === "matter") {
+    const m = S.matters[id], ts = tasksOf(id), n = ts.reduce((s, t) => s + timersOf(t.id).length, 0);
+    title = `Delete ${esc(m.nickname || "Matter")}?`;
+    body = `This also deletes its ${ts.length} task${ts.length === 1 ? "" : "s"} and ${n} timer${n === 1 ? "" : "s"}. Their hours are not added to your totals, so finalize anything you worked first. This can't be undone.`;
+  } else if (kind === "task") {
+    const t = S.tasks[id], n = timersOf(id).length;
+    title = `Delete task "${esc(t.name)}"?`;
+    body = `This also deletes its ${n} timer${n === 1 ? "" : "s"} without adding their hours to your totals. Use Finalize task to keep the hours. This can't be undone.`;
+  } else {
+    const x = S.timers[id];
+    title = `Delete timer "${esc(x.name)}"?`;
+    body = `Its ${h1(tenthsInt(elapsed(x)))} hours will not be added to your totals. This can't be undone.`;
+  }
+  openModal(`<h3>${title}</h3><p style="margin:0;color:var(--muted)">${body}</p><div class="err" id="merr"></div><div class="foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn danger" type="submit" value="del">Delete</button></div>`, async () => {
+    closeModal();
+    if (kind === "matter") await deleteMatter(id); else if (kind === "task") await deleteTask(id); else await del("timers", id);
+    toast("Deleted.");
+  }, "button.danger");
+}
+
+/* ---------- toast ---------- */
+let toastT;
+function toast(msg, actLabel, act) {
+  const el = $("#toast");
+  el.innerHTML = `<span>${esc(msg)}</span>` + (actLabel ? `<button type="button">${esc(actLabel)}</button>` : "");
+  el.hidden = false;
+  if (actLabel) el.querySelector("button").onclick = () => { el.hidden = true; act(); };
+  clearTimeout(toastT); toastT = setTimeout(() => { el.hidden = true; }, actLabel ? 7000 : 3500);
+}
+
+/* ---------- events ---------- */
+document.addEventListener("click", e => {
+  const tb = e.target.closest("[data-tab],[data-tab-go]");
+  if (tb && !ov.contains(tb)) { tab = tb.dataset.tab || tb.dataset.tabGo; ls.set("billables-tab", tab); render(); window.scrollTo(0, 0); return; }
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const id = b.dataset.id;
+  switch (b.dataset.act) {
+    case "new-matter": return matterForm(null);
+    case "edit-matter": return matterForm(S.matters[id]);
+    case "delete-matter": return confirmDelete("matter", id);
+    case "new-task": collapsed[id] = false; ls.set("billables-collapsed", collapsed); return taskForm(id, null);
+    case "edit-task": return taskForm(null, S.tasks[id]);
+    case "delete-task": return confirmDelete("task", id);
+    case "new-timer": return timerForm(id, null);
+    case "edit-timer": return timerForm(null, S.timers[id]);
+    case "start": return startTimer(id);
+    case "pause": return pauseTimer(id);
+    case "ack": acks[id] = Date.now(); ls.set("billables-acks", acks); lastStale = ""; return render();
+    case "fixtime": return pauseTimer(id).then(() => { timerForm(null, S.timers[id]); toast("Paused. Set the hours you actually worked, then save."); });
+    case "finalize": return finalizeTimer(id);
+    case "flip": { const t = S.timers[id]; if (!t) return; const ty = KEYS[(KEYS.indexOf(typeOf(t)) + 1) % 4]; return put("timers", {...t, type: ty, billable: ty === "b"}); }
+    case "finalize-task": return confirmFinalize("task", id);
+    case "finalize-day": return confirmFinalize("day");
+    case "edit-day": return dayForm(id);
+    case "send": return sendData();
+    case "load": return $("#restoreFile").click();
+    case "lock": return lockNow();
+    case "passcode": return passcodeForm();
+    case "passcode-off": return passcodeOffForm();
+    case "forgot": return forgotForm();
+    case "toggle": collapsed[id] = !collapsed[id]; ls.set("billables-collapsed", collapsed); return render();
+    case "example": return loadExample();
+  }
+});
+document.addEventListener("input", e => {
+  if (e.target.id === "whatif") {
+    whatIf = parseFloat(e.target.value);
+    const p = pace();
+    $("#wiH").textContent = hrs(whatIf);
+    $("#wiOut").innerHTML = wiText(p, p.billed + whatIf * p.left);
+  }
+});
+document.addEventListener("submit", async e => {
+  if (e.target.id === "unlockForm") {
+    e.preventDefault();
+    const pass = $("#unlockPass").value, btn = e.target.querySelector("button");
+    if (!pass) return;
+    btn.disabled = true; $("#lockErr").textContent = "";
+    try { await unlock(pass); } catch { if ($("#lockErr")) { $("#lockErr").textContent = "That passcode isn't right."; $("#unlockPass").select(); } }
+    finally { if (btn.isConnected) btn.disabled = false; }
+    return;
+  }
+  if (e.target.id !== "settingsForm") return;
+  e.preventDefault();
+  const target = parseFloat($("#setTarget").value), start = $("#setStart").value, end = $("#setEnd").value;
+  if (!(target > 0) || !start || !end || end < start) return toast("Enter a target above zero and an end date after the start date.");
+  saveSettings({target, start, end}); whatIf = null; toast("Target saved.");
+});
+
+function passcodeForm() {
+  const on = !!lockInfo();
+  openModal(`<h3>${on ? "Change passcode" : "Set a passcode"}</h3>
+    <div class="crumb">Use the same passcode on your phone and Mac so sync files open on both. If you forget it, the data on this device can't be recovered.</div>
+    <div class="fields">
+      ${on ? `<label class="f full">Current passcode<input type="password" id="pcOld" autocomplete="current-password"></label>` : ""}
+      <label class="f full">New passcode <span class="hint">At least 4 characters</span><input type="password" id="pcNew" autocomplete="new-password"></label>
+      <label class="f full">Repeat new passcode<input type="password" id="pcNew2" autocomplete="new-password"></label>
+    </div>` + footer(on ? "Change passcode" : "Turn on passcode"), async () => {
+    const nw = $("#pcNew").value;
+    if (on && !(await verifyPass($("#pcOld").value))) return setErr("The current passcode isn't right.");
+    if (nw.length < 4) return setErr("Use at least 4 characters.");
+    if (nw !== $("#pcNew2").value) return setErr("The two new passcodes don't match.");
+    await setPasscode(nw); closeModal(); render();
+    toast(on ? "Passcode changed." : "Passcode on. Your data is now encrypted on this device.");
+  });
+}
+function passcodeOffForm() {
+  openModal(`<h3>Turn off the passcode?</h3><div class="crumb">Your data will be stored on this device without encryption.</div>
+    <label class="f">Current passcode<input type="password" id="pcOld" autocomplete="current-password"></label>` + footer("Turn off"), async () => {
+    if (!(await verifyPass($("#pcOld").value))) return setErr("That passcode isn't right.");
+    await turnOffPasscode(); closeModal(); render(); toast("Passcode off.");
+  });
+}
+function forgotForm() {
+  openModal(`<h3>Erase this device and start over?</h3><p style="margin:0;color:var(--muted)">Without the passcode, the encrypted data can't be opened. Erasing deletes everything on this device. Afterward you can load a sync file from your other device, using the passcode it was sent with.</p><div class="err" id="merr"></div><div class="foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn danger" type="submit" value="erase">Erase this device</button></div>`, () => {
+    try { localStorage.removeItem(LOCK_KEY); localStorage.removeItem(LOCAL_KEY); } catch {}
+    L.key = null; L.pass = null; S.locked = false; clearMemory(); saveLocal(); closeModal(); render();
+    toast("Erased. Tap Load to bring in a sync file from your other device.");
+  }, "button.danger");
+}
+// Asks for the passcode a sync file was sent with, trying this device's passcode first.
+function openLockedFile(d) {
+  const tryPass = async pass => unseal(await deriveKey(pass, unb64(d.salt)), d);
+  const finish = inner => { const n = mergeIn(inner); toast(n ? "Loaded and combined with what's on this device." : "Already up to date."); };
+  (L.pass ? tryPass(L.pass) : Promise.reject()).then(finish, () => {
+    openModal(`<h3>Passcode for this file</h3><div class="crumb">This sync file is encrypted with the passcode from your other device.</div>
+      <label class="f">Passcode<input type="password" id="pcFile" autocomplete="current-password"></label>` + footer("Open file"), async () => {
+      try { const inner = await tryPass($("#pcFile").value); closeModal(); finish(inner); }
+      catch { setErr("That passcode doesn't open this file."); }
+    });
+  });
+}
+
+async function sendData() {
+  const head = {app: "billables-ledger", version: 2, device, savedAt: new Date().toISOString()};
+  const data = JSON.stringify(lockInfo() && L.key ? {...head, enc: 1, salt: lockInfo().salt, ...(await seal(L.key, snapshot()))} : {...head, ...snapshot()});
+  const name = "billables-" + todayStr() + ".json";
+  const markSent = () => { ls.set("billables-last-sent", todayStr()); render(); };
+  try {
+    const file = new File([data], name, {type: "application/json"});
+    if (navigator.canShare && navigator.canShare({files: [file]})) {
+      await navigator.share({files: [file], title: "Billables Ledger data"});
+      markSent(); toast("Sent. On your other device, tap Load and pick this file.");
+      return;
+    }
+  } catch (e) { if (e && e.name === "AbortError") return; }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([data], {type: "application/json"}));
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  markSent();
+  toast("Saved to Downloads. AirDrop it to your other device, then tap Load there.");
+}
+
+// Combines another device's data with this one. Newer edits win; deletions on either side stick.
+function mergeIn(d) {
+  let changed = 0;
+  const gone = {...S.gone};
+  for (const [id, ts] of Object.entries(d.gone || {})) if (typeof ts === "number" && !(gone[id] >= ts)) gone[id] = ts;
+  const inc = {matters: d.matters || {}, tasks: d.tasks || {}, timers: d.timers || {}, entries: {...(d.entries || {})}};
+  // Backups from the earlier single-file version stored one totals record per day.
+  for (const x of Object.values(d.totals || {})) KEYS.forEach(k => {
+    if (x && x.date && x[k]) { const id = "legacy-" + x.date + "-" + k; inc.entries[id] = {id, date: x.date, k, t: x[k], at: 0, updatedAt: 0}; }
+  });
+  for (const c of COLLS) {
+    const cur = {...S[c]};
+    for (const [id, item] of Object.entries(inc[c])) {
+      if (!item || typeof item !== "object") continue;
+      const u = item.updatedAt || 0;
+      if (id in gone && gone[id] >= u) continue;
+      if (!cur[id] || (cur[id].updatedAt || 0) < u) { cur[id] = {...item, id}; changed++; }
+    }
+    for (const id of Object.keys(cur)) if (id in gone && gone[id] >= (cur[id].updatedAt || 0)) { delete cur[id]; changed++; }
+    S[c] = cur;
+  }
+  for (const c of COLLS) for (const id of Object.keys(S[c])) delete gone[id];
+  S.gone = gone;
+  if (d.settings && (d.settings.updatedAt || 0) > (S.settings.updatedAt || 0)) { S.settings = {...DEFAULTS, ...d.settings}; changed++; }
+  saveLocal(); render(); migrateFinalized(true);
+  return changed;
+}
+$("#restoreFile").addEventListener("change", e => {
+  const f = e.target.files && e.target.files[0]; e.target.value = "";
+  if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    let d; try { d = JSON.parse(rd.result); } catch { return toast("That file isn't Billables Ledger data."); }
+    if (!d || d.app !== "billables-ledger") return toast("That file isn't Billables Ledger data.");
+    if (d.device && d.device === device) return toast("That file came from this device, so there's nothing new to load.");
+    if (d.enc) { if (!canLock) return toast("This browser can't open encrypted files."); return openLockedFile(d); }
+    const n = mergeIn(d);
+    toast(n ? "Loaded and combined with what's on this device." : "Already up to date.");
+  };
+  rd.readAsText(f);
+});
+
+init();
+})();
+</script>
+
+</body></html>
